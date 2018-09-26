@@ -36,36 +36,36 @@ cc.Class({
         this.linePointPool = new cc.NodePool();
         this.controlPointPool = new cc.NodePool();
         this.bezierConfig = new Object();  //this.bezierConfig = {};
-        var touchPoint = undefined;
+        var touchPoint = null;
         this.editorCanvas.on(cc.Node.EventType.TOUCH_START, function (event){
             // console.log("touchstart" + event.getLocationX() + "," + event.getLocationY());
-            var touchPos = this.editorCanvas.convertTouchToNodeSpaceAR(event);
-            // console.log("convert" + touchPos.x + "," + touchPos.y);
-            this.addPoint(touchPos);
-            // for(var i = 0; i < this.controlPointList.length; i++) {
-            //     var point = this.controlPointList[i];
-            //     var dis = cc.pDistance(point.position,this.editorCanvas.parent.convertTouchToNodeSpace(event));
-            //     if (dis < 10) {
-            //         touchPoint = point;
-            //     }
-            // }
+            for(var i = 0; i < this.controlPointList.length; i++) {
+                var point = this.controlPointList[i];
+                var dis = cc.pDistance(point.position, this.editorCanvas.convertTouchToNodeSpaceAR(event));
+                if (dis < 40) {
+                    touchPoint = point;
+                }
+            }
         },this);
-        // this.editorCanvas.on(cc.Node.EventType.TOUCH_MOVE, function (event){
-        //     if (touchPoint) {
-        //         touchPoint.position = this.editorCanvas.parent.convertTouchToNodeSpace(event);
-        //     }
-        // });
-        // this.editorCanvas.on(cc.Node.EventType.TOUCH_END, function (event){
-        //     if (touchPoint === undefined) {
-        //         var touchPos = this.editorCanvas.parent.convertTouchToNodeSpace(event);
-        //         this.addPoint(touchPos);
-        //     } else {
-        //         touchPoint = undefined;
-        //     }
-        // });
+        this.editorCanvas.on(cc.Node.EventType.TOUCH_MOVE, function (event){
+            if (touchPoint !== null) {
+                touchPoint.position = this.editorCanvas.convertTouchToNodeSpaceAR(event);    
+                this.showLinePoint();
+            }
+        },this);
+        this.editorCanvas.on(cc.Node.EventType.TOUCH_END, function (event){
+            if (touchPoint === null) {
+                var touchPos = this.editorCanvas.convertTouchToNodeSpaceAR(event);
+                this.addCtrPoint(touchPos);
+                this.showLinePoint();
+                touchPoint = null;
+            } else {
+                touchPoint = null;
+            }
+        },this);
     },
 
-    addPoint: function (pos) {
+    addCtrPoint: function (pos) {
         // console.log('addPoint pos:' + JSON.stringify(pos));
         var pointNode = null;
         if (this.controlPointPool.size() > 0) {
@@ -76,7 +76,8 @@ cc.Class({
         pointNode.parent = this.editorCanvas;
         pointNode.position = pos;
         this.controlPointList.push(pointNode);
-        this.showLinePoint();
+        var numLabel = pointNode.getChildByName("label_num").getComponent(cc.Label);
+        numLabel.string = this.controlPointList.length + "";
     },
 
     showLinePoint: function () {
@@ -103,10 +104,6 @@ cc.Class({
         }
     },
 
-    update: function (dt) {
-
-    },
-
     buildBtn: function () {
         console.log("保存");
         if (cc.sys.isBrowser){
@@ -118,11 +115,11 @@ cc.Class({
             var downloadLink = document.createElement("a");
             downloadLink.download = fileNameToSaveAs;
             downloadLink.innerHTML = "Download File";
-            if (window.webkitURL != null)
+            if (window.URL != null)
             {
                 // Chrome allows the link to be clicked
                 // without actually adding it to the DOM.
-                downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+                downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
             }
             else
             {
@@ -155,7 +152,8 @@ cc.Class({
         var posList = this.bezierConfig[this.curBezierId];
         this.removePoint();
         for (var i = 0; i < posList.length; i++) {
-            this.addPoint(posList[i]);
+            this.addCtrPoint(posList[i]);
+            this.showLinePoint();
         }
     },
 
